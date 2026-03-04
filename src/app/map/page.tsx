@@ -47,23 +47,31 @@ Primary channel: Telegram
 `,
         'openclaw.json': JSON.stringify({
           models: {
-            'claude-opus-4-6': { provider: 'anthropic', alias: 'opus' },
-            'claude-sonnet-4-6': { provider: 'anthropic', alias: 'sonnet' },
-            'deepseek-chat': { provider: 'deepseek', alias: 'deepseek' },
+            providers: {
+              anthropic: { models: [
+                { id: 'claude-opus-4-6', name: 'Claude Opus 4.6' },
+                { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6' },
+              ]},
+              deepseek: { models: [
+                { id: 'deepseek-chat', name: 'DeepSeek Chat' },
+              ]},
+            },
           },
           agents: {
-            main: { model: 'claude-opus-4-6', role: 'Orchestration Lead' },
-            sonnet: { model: 'claude-sonnet-4-6', role: 'Senior Lead Engineer' },
-            coder: { model: 'deepseek-chat', role: 'Junior Dev' },
-            analyst: { model: 'deepseek-chat', role: 'Data Analysis' },
-            local: { model: 'deepseek-chat', role: 'Local tasks' },
+            defaults: { model: { primary: 'anthropic/claude-sonnet-4-6' } },
+            list: [
+              { id: 'main', model: { primary: 'anthropic/claude-opus-4-6' } },
+              { id: 'sonnet', model: { primary: 'anthropic/claude-sonnet-4-6' } },
+              { id: 'coder', model: { primary: 'deepseek/deepseek-chat' } },
+              { id: 'analyst', model: { primary: 'deepseek/deepseek-chat' } },
+              { id: 'local', model: { primary: 'deepseek/deepseek-chat' } },
+            ],
           },
-          heartbeat: {
-            model: 'deepseek-chat',
-            interval: 'daily at 09:00',
-          },
-          channels: ['telegram'],
+          heartbeat: { model: 'deepseek-chat', every: '15m' },
+          channels: { telegram: { enabled: true } },
         }, null, 2),
+        'HEARTBEAT.md': '# Heartbeat Tasks\n\nCheck email, calendar, weather during quiet periods.\nIf nothing needs attention: HEARTBEAT_OK\nProactive checks rotate 2-4x daily.\nLate night (23:00-08:00): stay quiet unless urgent.',
+        'SOUL.md': '# SOUL.md — Bub\n\nDirect and efficient. Say what needs saying. No filler.\nGenuinely helpful, not performatively helpful.\nOpinionated when it matters.\nConcise by default, thorough when it counts.\nResourceful before asking — read the file, check the context, search memory.',
       };
       setFileContents(demoContents);
       setAgentMap(demoMap);
