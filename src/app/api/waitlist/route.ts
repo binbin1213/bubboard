@@ -9,35 +9,39 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Email is required' }, { status: 400 });
     }
 
-    // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return NextResponse.json({ ok: false, error: 'Invalid email address' }, { status: 400 });
     }
 
-    const cleanEmail = email.trim().toLowerCase();
+    const baseId = process.env.AIRTABLE_BASE_ID;
+    const apiKey = process.env.AIRTABLE_API_KEY;
 
-    // Forward to webhook if configured
-    const webhookUrl = process.env.WAITLIST_WEBHOOK_URL;
-    if (webhookUrl) {
-      try {
-        await fetch(webhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: cleanEmail,
-            timestamp: new Date().toISOString(),
-            source: 'bubboard-waitlist',
-          }),
-        });
-      } catch (webhookErr) {
-        // Don't fail if webhook fails — log and continue
-        console.error('[waitlist] Webhook failed:', webhookErr);
-      }
+    if (!baseId || !apiKey) {
+      console.error('[waitlist] Missing AIRTABLE_BASE_ID or AIRTABLE_API_KEY');
+      return NextResponse.json({ ok: false, error: 'Server misconfiguration' }, { status: 500 });
     }
 
-    // Always log to server console as fallback
-    console.log(`[waitlist] New signup: ${cleanEmail} at ${new Date().toISOString()}`);
+    const res = await fetch(`https://api.airtable.com/v0/${baseId}/Waitlist`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        fields: {
+          'Email': email.trim().toLowerCase(),
+          'Time Stamp': new Date().toISOString(),
+        },
+      }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({})) as { error?: { message?: string } };
+      const message = data?.error?.message ?? `Airtable error ${res.status}`;
+      console.error('[waitlist] Airtable error:', message);
+      return NextResponse.json({ ok: false, error: message }, { status: res.status });
+    }
 
     return NextResponse.json({ ok: true });
   } catch (err) {
